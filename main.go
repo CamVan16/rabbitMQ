@@ -2,23 +2,34 @@ package main
 
 import (
 	"fmt"
-	"sync"
 	"time"
 )
 
 func main() {
-	var wg sync.WaitGroup //tao wg de doi cac goroutines hoan thanh
+	r := &RabbitMQ{}
+	err := r.connectRabbitMQ()
+	if err != nil {
+		panic(err)
+	}
+	defer r.Close()
+
 	done := make(chan bool)
+	go produce(r, done)
+	go consume(r, done)
 
-	wg.Add(2)
+	go func() {
+		for {
+			select {
+			case <-done:
+				return
+			case err := <-r.check:
+				fmt.Println("error received, reconnecting...", err)
+				r.reconnectRabbitMQ()
+			}
+		}
+	}()
 
-	go produce(&wg, done)
-	go consume(&wg, done)
-
-	time.Sleep(5 * time.Second)
-
+	time.Sleep(10 * time.Second)
 	close(done)
-
-	wg.Wait() // doi ca 2 goroutine hoan thanh
 	fmt.Println("done!")
 }

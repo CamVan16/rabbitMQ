@@ -2,41 +2,24 @@ package main
 
 import (
 	"fmt"
-	"sync"
 	"time"
 
-	"github.com/streadway/amqp"
+	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 // chay 1 goroutine gui message toi rabbitMQ
-func produce(wg *sync.WaitGroup, done <-chan bool) {
-	defer wg.Done()
-
+func produce(r *RabbitMQ, done chan bool) {
 	for {
 		select {
-		case <-done: //dung khi done
+		case <-done:
 			return
 		default:
-			conn := reconnectRabbitMQ()
-			ch, err := conn.Channel()
+			err := r.createQueue()
 			if err != nil {
-				fmt.Println(err)
+				fmt.Println("queue is not open", err)
 			}
-			q, err := ch.QueueDeclare( //tao hang doi testqueue neu ch ton tai
-				"testqueue",
-				false,
-				false,
-				false,
-				false,
-				nil,
-			)
-			if err != nil {
-				fmt.Println(err)
-			}
-			fmt.Println(q)
-
-			err = ch.Publish( //gui tin nhan
-				"",
+			err = r.ch.Publish( //gui tin nhan
+				"", //exchange
 				"testqueue",
 				false,
 				false,
@@ -46,15 +29,13 @@ func produce(wg *sync.WaitGroup, done <-chan bool) {
 				},
 			)
 			if err != nil {
-				fmt.Println(err)
+				fmt.Println("fail", err)
 			} else {
 				fmt.Println("successfully published message to queue")
 			}
-
-			ch.Close()
-			conn.Close()
 			time.Sleep(1 * time.Second)
 		}
 
 	}
+
 }
