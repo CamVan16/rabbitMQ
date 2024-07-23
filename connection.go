@@ -57,7 +57,7 @@ func (r *RabbitMQ) createQueue() error {
 
 // dong ket noi
 func (r *RabbitMQ) Close() {
-	r.check = false
+	r.setCheck(false)
 	r.ch.Close()
 	r.conn.Close()
 

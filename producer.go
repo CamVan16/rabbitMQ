@@ -9,30 +9,31 @@ import (
 
 // chay 1 goroutine gui message toi rabbitMQ
 func produce(r *RabbitMQ, done chan bool) {
-	select {
-	case <-done:
-		return
-	default:
-		err := r.createQueue()
-		if err != nil {
-			fmt.Println("queue is not open", err)
+	for {
+		select {
+		case <-done:
+			return
+		default:
+			err := r.createQueue()
+			if err != nil {
+				fmt.Println("queue is not open", err)
+			}
+			err = r.ch.Publish( //gui tin nhan
+				"", //exchange
+				"testqueue",
+				false,
+				false,
+				amqp.Publishing{
+					ContentType: "text/plain",
+					Body:        []byte("hello world"),
+				},
+			)
+			if err != nil {
+				fmt.Println("fail", err)
+			} else {
+				fmt.Println("successfully published message to queue")
+			}
+			time.Sleep(1 * time.Second)
 		}
-		err = r.ch.Publish( //gui tin nhan
-			"", //exchange
-			"testqueue",
-			false,
-			false,
-			amqp.Publishing{
-				ContentType: "text/plain",
-				Body:        []byte("hello world"),
-			},
-		)
-		if err != nil {
-			fmt.Println("fail", err)
-		} else {
-			fmt.Println("successfully published message to queue")
-		}
-		time.Sleep(1 * time.Second)
 	}
-
 }

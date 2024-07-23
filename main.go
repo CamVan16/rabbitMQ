@@ -14,12 +14,12 @@ func main() {
 	defer r.Close()
 
 	done := make(chan bool)
-	c := make(chan bool)
-	c <- r.getCheck()
 	go produce(r, done)
 	go consume(r, done)
 	//sd go de reconnect
 	go func() {
+		c := make(chan bool)
+		c <- r.getCheck()
 		for {
 			select {
 			case <-done:
