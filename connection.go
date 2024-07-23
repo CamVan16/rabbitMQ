@@ -1,9 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"time"
-
 	amqp "github.com/rabbitmq/amqp091-go" //rabbitmq
 )
 
@@ -15,10 +12,10 @@ type RabbitMQ struct {
 	conn  *amqp.Connection
 	ch    *amqp.Channel
 	queue amqp.Queue
-	check chan error
+	check bool
 }
 
-// tao connection
+// tao connection, channel
 func (r *RabbitMQ) connectRabbitMQ() error {
 	var err error
 	r.conn, err = amqp.Dial(rabbitURL)
@@ -29,9 +26,19 @@ func (r *RabbitMQ) connectRabbitMQ() error {
 	if err != nil {
 		return err
 	}
+	r.setCheck(true)
 	return nil
 }
 
+func (r *RabbitMQ) getCheck() bool {
+	return r.check
+}
+
+func (r *RabbitMQ) setCheck(c bool) {
+	r.check = c
+}
+
+// tao queue
 func (r *RabbitMQ) createQueue() error {
 	var err error
 	r.queue, err = r.ch.QueueDeclare(
@@ -48,20 +55,9 @@ func (r *RabbitMQ) createQueue() error {
 	return nil
 }
 
-// reconnection lai neu mat ket noi
-func (r *RabbitMQ) reconnectRabbitMQ() error {
-	for {
-		err := r.connectRabbitMQ()
-		if err == nil {
-			return err
-		}
-		fmt.Println("failed to connect. retrying in 2 seconds")
-		time.Sleep(2 * time.Second)
-	}
-}
-
 // dong ket noi
 func (r *RabbitMQ) Close() {
+	r.check = false
 	r.ch.Close()
 	r.conn.Close()
 
